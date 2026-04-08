@@ -20,6 +20,10 @@ LEFT_HIP = 23
 RIGHT_HIP = 24
 LEFT_INDEX = 19
 RIGHT_INDEX = 20
+LEFT_PINKY = 17
+RIGHT_PINKY = 18
+LEFT_THUMB = 21
+RIGHT_THUMB = 22
 NOSE = 0
 
 
@@ -123,6 +127,38 @@ def compute_arm_extension_ratio(landmarks: np.ndarray, side: str = "right") -> f
 
     direct_dist = np.linalg.norm(wrist - shoulder)
     return float(np.clip(direct_dist / full_arm_len, 0.0, 1.0))
+
+
+def compute_hand_openness(landmarks: np.ndarray, side: str = "right") -> float:
+    """Compute how open the hand is (0 = fist, 1 = fully open).
+
+    Uses the average distance of fingertips (index, pinky, thumb) from wrist,
+    normalized by forearm length (elbow-to-wrist).
+    """
+    if side == "right":
+        wrist = landmarks[RIGHT_WRIST, :3]
+        elbow = landmarks[RIGHT_ELBOW, :3]
+        index = landmarks[RIGHT_INDEX, :3]
+        pinky = landmarks[RIGHT_PINKY, :3]
+        thumb = landmarks[RIGHT_THUMB, :3]
+    else:
+        wrist = landmarks[LEFT_WRIST, :3]
+        elbow = landmarks[LEFT_ELBOW, :3]
+        index = landmarks[LEFT_INDEX, :3]
+        pinky = landmarks[LEFT_PINKY, :3]
+        thumb = landmarks[LEFT_THUMB, :3]
+
+    forearm_len = np.linalg.norm(wrist - elbow)
+    if forearm_len < 1e-8:
+        return 0.0
+
+    avg_tip_dist = (
+        np.linalg.norm(index - wrist)
+        + np.linalg.norm(pinky - wrist)
+        + np.linalg.norm(thumb - wrist)
+    ) / 3.0
+
+    return float(np.clip(avg_tip_dist / forearm_len, 0.0, 1.0))
 
 
 def detect_pointing_arm(landmarks: np.ndarray, extension_threshold: float = 0.7) -> str | None:

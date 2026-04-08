@@ -60,6 +60,11 @@ class StereoVision:
             (image_size[0], image_size[1]), cv2.CV_32FC1
         )
 
+        # Projection matrices for triangulation (using original K, not rectified P)
+        # T is negated to match OpenCV triangulatePoints convention
+        self.P1_tri = self.K_L @ np.hstack([np.eye(3), np.zeros((3, 1))])
+        self.P2_tri = self.K_R @ np.hstack([self.R, self.T])
+
         # Baseline in the same units as T (centimeters from stereo_calib)
         self.baseline = np.linalg.norm(self.T)
         print(f"[StereoVision] Loaded calibration from {calib_path}")
@@ -76,18 +81,23 @@ class StereoVision:
         """Triangulate 2D point correspondences -> 3D world points.
 
         Args:
-            pts_left: (N, 2) pixel coordinates in left image.
-            pts_right: (N, 2) pixel coordinates in right image.
+            pts_left: (N, 2) pixel coordinates in left image (raw/unrectified).
+            pts_right: (N, 2) pixel coordinates in right image (raw/unrectified).
 
         Returns:
-            (N, 3) 3D points in left camera frame (units match T, i.e. centimeters).
+            (N, 3) 3D points in left camera frame (units match T).
         """
-        pts_left = pts_left.astype(np.float64)
-        pts_right = pts_right.astype(np.float64)
+        pts_left = pts_left.astype(np.float64).reshape(-1, 1, 2)
+        pts_right = pts_right.astype(np.float64).reshape(-1, 1, 2)
 
-        # triangulatePoints expects (2, N) arrays
-        pts4d = cv2.triangulatePoints(self.P1, self.P2,
-                                       pts_left.T, pts_right.T)
+        # Undistort pixel coordinates (no rectification — use original K)
+        pts_left_u = cv2.undistortPoints(pts_left, self.K_L, self.dist_L, P=self.K_L)
+        pts_right_u = cv2.undistortPoints(pts_right, self.K_R, self.dist_R, P=self.K_R)
+
+        # Triangulate using original-K projection matrices
+        pts4d = cv2.triangulatePoints(self.P1_tri, self.P2_tri,
+                                       pts_left_u.reshape(-1, 2).T,
+                                       pts_right_u.reshape(-1, 2).T)
 
         # Convert from homogeneous (4, N) -> (N, 3)
         pts3d = (pts4d[:3] / pts4d[3:]).T

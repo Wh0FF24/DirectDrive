@@ -145,10 +145,12 @@ def main():
     # --- Initialize pointing detectors (one per camera) ---
     pointing_left = PointingDetector(
         extension_threshold=cfg.POINTING_EXTENSION_THRESH,
+        hand_open_threshold=cfg.POINTING_HAND_OPEN_THRESH,
         min_detection_confidence=cfg.POINTING_CONFIDENCE_GATE,
     )
     pointing_right = PointingDetector(
         extension_threshold=cfg.POINTING_EXTENSION_THRESH,
+        hand_open_threshold=cfg.POINTING_HAND_OPEN_THRESH,
         min_detection_confidence=cfg.POINTING_CONFIDENCE_GATE,
     )
 

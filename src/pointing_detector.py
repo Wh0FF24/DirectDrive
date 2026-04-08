@@ -12,6 +12,7 @@ from mediapipe_extractor import MediaPipePoseExtractor
 from keypoint_utils import (
     detect_pointing_arm,
     compute_arm_extension_ratio,
+    compute_hand_openness,
     LEFT_SHOULDER, RIGHT_SHOULDER,
     LEFT_WRIST, RIGHT_WRIST,
     LEFT_INDEX, RIGHT_INDEX,
@@ -25,6 +26,7 @@ class PointingResult:
     wrist_px: np.ndarray        # (2,) pixel coords [x, y]
     index_px: np.ndarray        # (2,) index fingertip pixel coords
     confidence: float           # arm extension ratio [0, 1]
+    hand_openness: float        # 0 = fist, 1 = fully open
     landmarks: np.ndarray       # full (33, 4) for debugging
     landmarks_px: np.ndarray    # full (33, 2) pixel coords
 
@@ -33,6 +35,7 @@ class PointingDetector:
     """Detects pointing gestures from a single camera frame."""
 
     def __init__(self, extension_threshold: float = 0.55,
+                 hand_open_threshold: float = 0.4,
                  model_complexity: int = 1,
                  min_detection_confidence: float = 0.5,
                  min_tracking_confidence: float = 0.5):
@@ -43,6 +46,7 @@ class PointingDetector:
             min_tracking_confidence=min_tracking_confidence,
         )
         self.threshold = extension_threshold
+        self.hand_open_threshold = hand_open_threshold
 
     def detect(self, frame: np.ndarray) -> PointingResult | None:
         """Run pose detection and check for pointing gesture.
@@ -76,6 +80,7 @@ class PointingDetector:
             index_px = landmarks_px[LEFT_INDEX]
 
         confidence = compute_arm_extension_ratio(landmarks, side)
+        openness = compute_hand_openness(landmarks, side)
 
         return PointingResult(
             side=side,
@@ -83,6 +88,7 @@ class PointingDetector:
             wrist_px=wrist_px.copy(),
             index_px=index_px.copy(),
             confidence=confidence,
+            hand_openness=openness,
             landmarks=landmarks,
             landmarks_px=landmarks_px,
         )

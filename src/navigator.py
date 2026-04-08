@@ -85,6 +85,11 @@ class Navigator:
             self.estimator.reset()
             return
 
+        # Require both cameras to agree on which arm is pointing
+        if result_left.side != result_right.side:
+            self.estimator.reset()
+            return
+
         # Both cameras see pointing — estimate ground target
         target = self.estimator.estimate(
             left_frame, right_frame,
@@ -96,15 +101,15 @@ class Navigator:
 
         self.debug_info["target"] = target
 
-        # Wait for stable detection before committing
-        if self.estimator.is_stable:
-            self.target = target
-            self.state = self.DRIVING
-            self.drive_start_time = time.time()
-            self.estimator.reset()
-            print(f"[Navigator] TARGET LOCKED: dist={target.distance:.0f}cm "
-                  f"heading={target.heading_angle:.1f}deg")
-            print(f"[Navigator] -> DRIVING")
+        # (State machine disabled for testing — stays in WAITING)
+        # if self.estimator.is_stable:
+        #     self.target = target
+        #     self.state = self.DRIVING
+        #     self.drive_start_time = time.time()
+        #     self.estimator.reset()
+        #     print(f"[Navigator] TARGET LOCKED: dist={target.distance/10:.0f}cm "
+        #           f"heading={target.heading_angle:.1f}deg")
+        #     print(f"[Navigator] -> DRIVING")
 
     def _handle_driving(self, left_frame, right_frame):
         """Visual servo: re-estimate target, steer proportionally, stop when close."""
@@ -144,7 +149,7 @@ class Navigator:
 
         # Check arrival
         if current_target.distance < self.cfg.ARRIVE_DISTANCE_CM:
-            print(f"[Navigator] ARRIVED (dist={current_target.distance:.0f}cm)")
+            print(f"[Navigator] ARRIVED (dist={current_target.distance/10:.0f}cm)")
             self.state = self.ARRIVED
             return
 
@@ -209,7 +214,7 @@ class Navigator:
         # Draw target info
         target = self.debug_info.get("target")
         if target is not None:
-            cv2.putText(overlay, f"Dist: {target.distance:.0f}cm", (10, 60),
+            cv2.putText(overlay, f"Dist: {target.distance/10:.0f}cm", (10, 60),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
             cv2.putText(overlay, f"Heading: {target.heading_angle:.1f}deg", (10, 85),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
@@ -233,8 +238,21 @@ class Navigator:
             cv2.line(overlay, sh, wr, (0, 255, 255), 2)
             cv2.arrowedLine(overlay, wr, idx, (255, 0, 255), 2)
 
-            # Confidence
-            cv2.putText(overlay, f"Conf: {pointing_result.confidence:.2f}",
+            # Draw ground target crosshair (only on left view — that's where the ray is computed)
+            if target is not None and side == "left" and target.ground_px is not None:
+                gx, gy = target.ground_px
+                # Line from wrist to ground target
+                cv2.line(overlay, wr, (gx, gy), (0, 200, 255), 2, cv2.LINE_AA)
+                # Crosshair
+                cv2.drawMarker(overlay, (gx, gy), (0, 200, 255),
+                               cv2.MARKER_CROSS, 30, 2)
+                cv2.circle(overlay, (gx, gy), 15, (0, 200, 255), 2)
+                cv2.putText(overlay, f"{target.distance/10:.0f}cm",
+                            (gx + 18, gy - 5),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 200, 255), 2)
+
+            # Confidence + hand openness
+            cv2.putText(overlay, f"Conf: {pointing_result.confidence:.2f}  Hand: {pointing_result.hand_openness:.2f}",
                         (10, h - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
         # Steer command
