@@ -18,8 +18,13 @@ POINTING_HAND_OPEN_THRESH = 0.35   # min hand openness ratio (open hand = pointi
 
 # === Ground Target ===
 GROUND_PLANE_Y = 170.5             # ground plane Y in camera frame (mm below camera)
-GROUND_SMOOTH_ALPHA = 0.5          # EMA smoothing for ground target
+GROUND_SMOOTH_ALPHA = 0.3          # EMA smoothing for ground target (lower = smoother)
+GROUND_MAX_JUMP_MM = 1000.0        # outlier rejection: ignore targets jumping more than this
 ARRIVE_DISTANCE_CM = 300           # mm — consider "arrived" when this close
+
+# === Pointing Stability ===
+POINTING_STABLE_HEADING_TOL = 15.0   # degrees — max heading change to count as stable
+POINTING_STABLE_DISTANCE_TOL = 300.0 # mm — max distance change to count as stable
 
 # === Navigation ===
 NAV_DRIVE_SPEED = 75               # % throttle — slow and safe

@@ -159,7 +159,10 @@ def main():
         stereo=stereo,
         ground_y=cfg.GROUND_PLANE_Y,
         smooth_alpha=cfg.GROUND_SMOOTH_ALPHA,
+        max_jump=cfg.GROUND_MAX_JUMP_MM,
         stable_frames_needed=cfg.POINTING_STABLE_FRAMES,
+        stable_heading_tol=cfg.POINTING_STABLE_HEADING_TOL,
+        stable_distance_tol=cfg.POINTING_STABLE_DISTANCE_TOL,
     )
 
     # --- Initialize navigator ---

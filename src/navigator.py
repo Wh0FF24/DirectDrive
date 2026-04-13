@@ -101,15 +101,14 @@ class Navigator:
 
         self.debug_info["target"] = target
 
-        # (State machine disabled for testing — stays in WAITING)
-        # if self.estimator.is_stable:
-        #     self.target = target
-        #     self.state = self.DRIVING
-        #     self.drive_start_time = time.time()
-        #     self.estimator.reset()
-        #     print(f"[Navigator] TARGET LOCKED: dist={target.distance/10:.0f}cm "
-        #           f"heading={target.heading_angle:.1f}deg")
-        #     print(f"[Navigator] -> DRIVING")
+        if self.estimator.is_stable:
+            self.target = target
+            self.state = self.DRIVING
+            self.drive_start_time = time.time()
+            self.estimator.reset()
+            print(f"[Navigator] TARGET LOCKED: dist={target.distance/10:.0f}cm "
+                  f"heading={target.heading_angle:.1f}deg")
+            print(f"[Navigator] -> DRIVING")
 
     def _handle_driving(self, left_frame, right_frame):
         """Visual servo: re-estimate target, steer proportionally, stop when close."""
