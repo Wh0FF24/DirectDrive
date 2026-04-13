@@ -20,7 +20,7 @@ POINTING_HAND_OPEN_THRESH = 0.35   # min hand openness ratio (open hand = pointi
 GROUND_PLANE_Y = 170.5             # mm — ground plane Y below camera (measure camera height above floor)
 GROUND_SMOOTH_ALPHA = 0.3          # EMA smoothing for ground target (lower = smoother)
 GROUND_MAX_JUMP_MM = 1000.0        # mm — outlier rejection: ignore targets jumping more than this
-ARRIVE_DISTANCE_MM = 600           # mm — consider "arrived" when this close (accounts for braking coast)
+ARRIVE_DISTANCE_MM = 1000          # mm — consider "arrived" when this close (accounts for braking coast)
 MIN_RAY_DOWN_DEG = 5.0             # degrees — ray must point at least this far below horizontal
 
 # === Pointing Stability ===
