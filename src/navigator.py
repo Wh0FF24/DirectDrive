@@ -164,15 +164,14 @@ class Navigator:
         self.debug_info["drive_elapsed"] = elapsed
 
     def _handle_arrived(self):
-        """Stop car and transition to turning."""
+        """Stop car and go back to waiting (no turn)."""
         if self.car:
             self.car.stop()
             self.car.steer(0)
-        time.sleep(0.5)
 
-        self.state = self.TURNING
-        self.turn_start_time = time.time()
-        print("[Navigator] -> TURNING (180 deg)")
+        self.state = self.WAITING
+        self.target = None
+        print("[Navigator] -> WAITING (ready for next point)")
 
     def _handle_turning(self):
         """Turn ~180 degrees using timed full-lock steering."""
