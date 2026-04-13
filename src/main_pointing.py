@@ -163,6 +163,7 @@ def main():
         stable_frames_needed=cfg.POINTING_STABLE_FRAMES,
         stable_heading_tol=cfg.POINTING_STABLE_HEADING_TOL,
         stable_distance_tol=cfg.POINTING_STABLE_DISTANCE_TOL,
+        min_ray_down_deg=cfg.MIN_RAY_DOWN_DEG,
     )
 
     # --- Initialize navigator ---

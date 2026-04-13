@@ -34,7 +34,8 @@ class GroundTargetEstimator:
                  max_jump: float = 1000.0,
                  stable_frames_needed: int = 5,
                  stable_heading_tol: float = 15.0,
-                 stable_distance_tol: float = 300.0):
+                 stable_distance_tol: float = 300.0,
+                 min_ray_down_deg: float = 5.0):
         self.stereo = stereo
         self.ground_y = ground_y          # mm below camera to ground plane
         self.smooth_alpha = smooth_alpha
@@ -42,6 +43,7 @@ class GroundTargetEstimator:
         self.stable_frames_needed = stable_frames_needed
         self.stable_heading_tol = stable_heading_tol
         self.stable_distance_tol = stable_distance_tol
+        self.min_ray_down_deg = min_ray_down_deg  # reject rays not aimed at ground
 
         self._smooth_target = None
         self._prev_distance = None
@@ -83,6 +85,15 @@ class GroundTargetEstimator:
         ray_direction = index_3d - shoulder_3d
 
         if np.linalg.norm(ray_direction) < 1e-6:
+            self._stable_count = 0
+            return None
+
+        # --- Gate: ray must point downward toward the ground ---
+        # In OpenCV convention Y points down, so a downward ray has positive Y component.
+        ray_dir_norm = ray_direction / np.linalg.norm(ray_direction)
+        down_angle_deg = np.degrees(np.arcsin(np.clip(ray_dir_norm[1], -1.0, 1.0)))
+        if down_angle_deg < self.min_ray_down_deg:
+            # Ray is pointing upward or too horizontal — not aimed at the ground
             self._stable_count = 0
             return None
 

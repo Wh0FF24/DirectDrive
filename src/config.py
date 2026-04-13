@@ -21,6 +21,7 @@ GROUND_PLANE_Y = 170.5             # mm — ground plane Y below camera (measure
 GROUND_SMOOTH_ALPHA = 0.3          # EMA smoothing for ground target (lower = smoother)
 GROUND_MAX_JUMP_MM = 1000.0        # mm — outlier rejection: ignore targets jumping more than this
 ARRIVE_DISTANCE_MM = 300           # mm — consider "arrived" when this close
+MIN_RAY_DOWN_DEG = 5.0             # degrees — ray must point at least this far below horizontal
 
 # === Pointing Stability ===
 POINTING_STABLE_HEADING_TOL = 15.0   # degrees — max heading change to count as stable
