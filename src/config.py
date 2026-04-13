@@ -17,10 +17,10 @@ POINTING_CONFIDENCE_GATE = 0.3     # min MediaPipe detection confidence
 POINTING_HAND_OPEN_THRESH = 0.35   # min hand openness ratio (open hand = pointing, fist = ignore)
 
 # === Ground Target ===
-GROUND_PLANE_Y = 170.5             # ground plane Y in camera frame (mm below camera)
+GROUND_PLANE_Y = 170.5             # mm — ground plane Y below camera (measure camera height above floor)
 GROUND_SMOOTH_ALPHA = 0.3          # EMA smoothing for ground target (lower = smoother)
-GROUND_MAX_JUMP_MM = 1000.0        # outlier rejection: ignore targets jumping more than this
-ARRIVE_DISTANCE_CM = 300           # mm — consider "arrived" when this close
+GROUND_MAX_JUMP_MM = 1000.0        # mm — outlier rejection: ignore targets jumping more than this
+ARRIVE_DISTANCE_MM = 300           # mm — consider "arrived" when this close
 
 # === Pointing Stability ===
 POINTING_STABLE_HEADING_TOL = 15.0   # degrees — max heading change to count as stable

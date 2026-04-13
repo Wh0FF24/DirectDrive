@@ -22,6 +22,7 @@ class GroundTarget:
     ground_px: tuple        # (x, y) pixel in left image for crosshair
     shoulder_3d: np.ndarray | None = None  # for debug visualization
     wrist_3d: np.ndarray | None = None     # for debug visualization
+    index_3d: np.ndarray | None = None     # for debug visualization
 
 
 class GroundTargetEstimator:
@@ -52,29 +53,34 @@ class GroundTargetEstimator:
                  pointing_right: PointingResult) -> GroundTarget | None:
         h, w = left_frame.shape[:2]
 
-        # --- Triangulate shoulder and wrist from both views ---
+        # --- Triangulate shoulder, wrist, AND index fingertip from both views ---
         pts_left = np.array([pointing_left.shoulder_px,
-                             pointing_left.wrist_px], dtype=np.float64)
+                             pointing_left.wrist_px,
+                             pointing_left.index_px], dtype=np.float64)
         pts_right = np.array([pointing_right.shoulder_px,
-                              pointing_right.wrist_px], dtype=np.float64)
+                              pointing_right.wrist_px,
+                              pointing_right.index_px], dtype=np.float64)
 
         pts_3d = self.stereo.triangulate(pts_left, pts_right)
         shoulder_3d = pts_3d[0]  # (3,)
         wrist_3d = pts_3d[1]    # (3,)
+        index_3d = pts_3d[2]    # (3,)
 
-        # Sanity: both points should be in front of camera (Z > 0)
-        if shoulder_3d[2] <= 0 or wrist_3d[2] <= 0:
+        # Sanity: all points should be in front of camera (Z > 0)
+        if shoulder_3d[2] <= 0 or wrist_3d[2] <= 0 or index_3d[2] <= 0:
             self._stable_count = 0
             return None
 
         # Sanity: reject if points are unreasonably far (> 20m)
-        if np.linalg.norm(shoulder_3d) > 20000 or np.linalg.norm(wrist_3d) > 20000:
+        if np.linalg.norm(shoulder_3d) > 20000 or np.linalg.norm(index_3d) > 20000:
             self._stable_count = 0
             return None
 
-        # --- Compute pointing ray: shoulder -> wrist, extended to ground ---
+        # --- Compute pointing ray: shoulder -> index fingertip (much more precise
+        #     than shoulder -> wrist, since the fingertip captures actual pointing
+        #     direction rather than just arm direction) ---
         ray_origin = shoulder_3d
-        ray_direction = wrist_3d - shoulder_3d
+        ray_direction = index_3d - shoulder_3d
 
         if np.linalg.norm(ray_direction) < 1e-6:
             self._stable_count = 0
@@ -102,7 +108,7 @@ class GroundTargetEstimator:
             jump = np.linalg.norm(hit - self._smooth_target)
             if jump > self.max_jump:
                 # Keep previous estimate, don't update stable count
-                return self._make_target(self._smooth_target, shoulder_3d, wrist_3d, w, h)
+                return self._make_target(self._smooth_target, shoulder_3d, wrist_3d, index_3d, w, h)
 
         # --- EMA smoothing on ground intersection point ---
         if self._smooth_target is None:
@@ -129,16 +135,17 @@ class GroundTargetEstimator:
         self._prev_distance = distance
         self._prev_heading = heading
 
-        return self._make_target(self._smooth_target, shoulder_3d, wrist_3d, w, h)
+        return self._make_target(self._smooth_target, shoulder_3d, wrist_3d, index_3d, w, h)
 
     def _make_target(self, point_3d: np.ndarray,
                      shoulder_3d: np.ndarray, wrist_3d: np.ndarray,
+                     index_3d: np.ndarray,
                      w: int, h: int) -> GroundTarget:
         """Build GroundTarget from smoothed 3D point."""
         distance = float(np.sqrt(point_3d[0]**2 + point_3d[2]**2))
         heading = float(np.degrees(np.arctan2(point_3d[0], point_3d[2])))
 
-        # Project ground hit back to left image for crosshair
+        # Project ground hit back to left image for crosshair (with distortion)
         ground_px = self._project_to_left(point_3d, w, h)
 
         return GroundTarget(
@@ -148,17 +155,26 @@ class GroundTargetEstimator:
             ground_px=ground_px,
             shoulder_3d=shoulder_3d,
             wrist_3d=wrist_3d,
+            index_3d=index_3d,
         )
 
     def _project_to_left(self, point_3d: np.ndarray, w: int, h: int) -> tuple:
-        """Reproject a 3D point to left camera pixel coordinates."""
-        pt_h = np.array([point_3d[0], point_3d[1], point_3d[2], 1.0])
-        px_proj = self.stereo.P1_tri @ pt_h
-        if px_proj[2] > 0:
-            proj_x = int(np.clip(px_proj[0] / px_proj[2], 0, w - 1))
-            proj_y = int(np.clip(px_proj[1] / px_proj[2], 0, h - 1))
-            return (proj_x, proj_y)
-        return (w // 2, h // 2)
+        """Reproject a 3D point to left camera pixel coordinates, including distortion.
+
+        Uses cv2.projectPoints so the crosshair lands correctly on the raw
+        (distorted) camera image, not just the ideal undistorted image.
+        """
+        pts_3d = point_3d.reshape(1, 1, 3).astype(np.float64)
+        rvec = np.zeros((3, 1), dtype=np.float64)  # left cam = identity rotation
+        tvec = np.zeros((3, 1), dtype=np.float64)  # left cam = origin
+        img_pts, _ = cv2.projectPoints(
+            pts_3d, rvec, tvec,
+            self.stereo.K_L, self.stereo.dist_L
+        )
+        px = img_pts.reshape(-1, 2)[0]
+        proj_x = int(np.clip(px[0], 0, w - 1))
+        proj_y = int(np.clip(px[1], 0, h - 1))
+        return (proj_x, proj_y)
 
     @property
     def is_stable(self) -> bool:

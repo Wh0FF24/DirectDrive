@@ -147,7 +147,7 @@ class Navigator:
             return
 
         # Check arrival
-        if current_target.distance < self.cfg.ARRIVE_DISTANCE_CM:
+        if current_target.distance < self.cfg.ARRIVE_DISTANCE_MM:
             print(f"[Navigator] ARRIVED (dist={current_target.distance/10:.0f}cm)")
             self.state = self.ARRIVED
             return

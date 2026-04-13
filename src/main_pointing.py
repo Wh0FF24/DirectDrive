@@ -128,12 +128,12 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
 
     # --- Initialize stereo vision ---
-    calib_size = (640, 480) if not args.webcam else None
+    # NOTE: stereo_calibrate.py already saves intrinsics at native 1280x720.
+    # Do NOT pass calib_size — that would double-scale the intrinsics.
     try:
         stereo = StereoVision(
             calib_path=args.calib,
             image_size=(cfg.FRAME_WIDTH, cfg.FRAME_HEIGHT),
-            calib_size=calib_size,
         )
     except FileNotFoundError:
         print(f"[ERROR] Calibration file not found: {args.calib}")
