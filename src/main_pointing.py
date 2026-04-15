@@ -182,10 +182,14 @@ def main():
     # --- Video writer ---
     writer = None
     if args.record:
-        fourcc = cv2.VideoWriter_fourcc(*"XVID")
-        writer = cv2.VideoWriter(args.record, fourcc, 20.0,
+        # MJPG codec — plays on any OS without extra codecs
+        fourcc = cv2.VideoWriter_fourcc(*"MJPG")
+        out_path = args.record
+        if not out_path.endswith(".avi"):
+            out_path = out_path.rsplit(".", 1)[0] + ".avi"
+        writer = cv2.VideoWriter(out_path, fourcc, 20.0,
                                  (cfg.FRAME_WIDTH * 2, cfg.FRAME_HEIGHT))
-        print(f"[Record] Saving to {args.record}")
+        print(f"[Record] Saving to {out_path}")
 
     # --- Main loop ---
     print("\n[Ready] Point at the ground to direct the car. Ctrl+C to stop.\n")
